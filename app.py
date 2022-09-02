@@ -3,27 +3,30 @@ from dash import Dash, html, dcc
 import plotly.express as px
 import pandas as pd
 import dash_bootstrap_components as dbc
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import sklearn
 import joblib 
+from dash import dash_table
+from dash.exceptions import PreventUpdate
 
 app = Dash(__name__)
 app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP])
 
-# ALLOWED_TYPES = (
-    # "text", "number", "password", "email", "search",
-    # "tel", "url", "range", "hidden",
-# )
-table_header = [
-    html.Thead(html.Tr([html.Th("First Name"), html.Th("Last Name")]))
-]
 
-row1 = html.Tr([html.Td("Arthur"), html.Td("Dent")])
-row2 = html.Tr([html.Td("Ford"), html.Td("Prefect")])
-row3 = html.Tr([html.Td("Zaphod"), html.Td("Beeblebrox")])
-row4 = html.Tr([html.Td("Trillian"), html.Td("Astra")])
-
-table_body = [html.Tbody([row1, row2, row3, row4])]
+df = pd.DataFrame({
+    "Temperature": [],
+    "Relative Humidity": [],
+    "Absolute Humidity": [],
+    "Sensor 1": [],
+    "Sensor 2": [],
+    "Sensor 3": [],
+    "Sensor 4": [],
+    "Sensor 5": [],
+    "target_carbon_monoxide": [],
+    "target_benzene": [],
+    "target_nitrogen oxides": []
+})
+    
 
 
 app.layout = html.Div([
@@ -103,53 +106,73 @@ app.layout = html.Div([
                         id=f"input-sens-5", type= 'number', placeholder=f"sensor 5")
                     ] + [html.Div(id="out-sens-5")], className = 'sensor-inputs')
                 ], className = 'sensor-cols')
-            ], justify = "start"),
+            ], justify = "evenly"),
             html.Hr(style= {'color': 'white'}),
             dbc.Row([
                 dbc.Button(
-            "Click me", id="example-button", className="me-2", n_clicks=0
+            "Load", id="data-load", className="process-button", n_clicks =0
         ),
-        html.Span(id="example-output", style={"verticalAlign": "middle"}),
-            ])
+                dbc.Button(
+            "Process", id="data-processor", className="process-button", n_clicks=0
+        ),
+        html.Span(id="data-process", style={"verticalAlign": "middle"}),
+            ], justify = 'evenly')
         ],
                  className="app-card")
-    ])
+    ], width = 5)
         , 
         dbc.Col([
-            dbc.Table(table_header + table_body, bordered=True)
-        ])
+            
+            dash_table.DataTable(
+                id='table-container',
+                data=[],
+                columns=[{"name":i,"id":i,'type':'text'} for i in df.columns],
+                style_table={'overflow':'scroll','height':600},
+                style_cell={'textAlign':'center'},
+                row_deletable=True,
+                editable=True)
+        ], width= 7)
     ],
              className="div-space")
 ])
 
 @app.callback(
-    Output("out-temp", "children"), 
-    Output("out-rel-hum", "children"), 
-    Output("out-abs-hum", "children"), 
-    Output("out-sens-1", "children"),
-    Output("out-sens-2", "children"),
-    Output("out-sens-3", "children"),
-    Output("out-sens-4", "children"),
-    Output("out-sens-5", "children"),
-    Output("example-output", "children"), 
-    [Input('input-temp', "value")],
-    [Input('input-rel-hum', "value")],
-    [Input('input-abs-hum', "value")],
-    [Input("input-sens-1", "value")],
-    [Input("input-sens-2", "value")],
-    [Input("input-sens-3", "value")],
-    [Input("input-sens-4", "value")],
-    [Input("input-sens-5", "value")],
-    [Input("example-button", "n_clicks")]
+    Output("table-container", "data"), 
+    [Input("data-load", "n_clicks")],
+    [State('table-container', 'data'),
+    State('table-container', 'columns')],
+    [State('input-temp', "value")],
+    [State('input-rel-hum', "value")],
+    [State('input-abs-hum', "value")],
+    [State("input-sens-1", "value")],
+    [State("input-sens-2", "value")],
+    [State("input-sens-3", "value")],
+    [State("input-sens-4", "value")],
+    [State("input-sens-5", "value")],
     )
+def add_row(n_clicks, rows, columns, temp, rel_hum,abs_hum, sens1, sens2, sens3, sens4, sens5):
+    if n_clicks is None:
+        raise PreventUpdate
+    else:
+        rows.append({c['id']: r for c,r in zip(columns, [temp, rel_hum,abs_hum, sens1, sens2, sens3, sens4, sens5])})
+    return rows
 
 
-# def cb_render(*vals):
-    # sorcery skip: remove-redundant-fstring, simplify-fstring-formatting
-    # return " | ".join((str(val) for val in vals if val))
-def on_button_click(n):
-    return "Not clicked." if n is None else f"Clicked {n} times."
+
+# table data collection
+# @app.callback(
+#     [Output("table-container", "data"), Output("table-container", "columns")],
+#     [Input("data-processor", "n_clicks")]
+# )
+
+# @app.callback(
+#     Output("example-output", "children"),
+#     [Input("example-button", "n_clicks")],
+# )
+def model():
+    return
+
 
 if __name__ == '__main__':
-    model = joblib.load("predModel.sav")
+    # model = joblib.load("predModel.sav")
     app.run_server(debug=True)
