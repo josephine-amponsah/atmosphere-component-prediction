@@ -110,9 +110,6 @@ app.layout = html.Div([
             html.Hr(style= {'color': 'white'}),
             dbc.Row([
                 dbc.Button(
-            "Load", id="data-load", className="process-button", n_clicks =0
-        ),
-                dbc.Button(
             "Process", id="data-processor", className="process-button", n_clicks=0
         ),
         html.Span(id="data-process", style={"verticalAlign": "middle"}),
@@ -138,7 +135,7 @@ app.layout = html.Div([
 
 @app.callback(
     Output("table-container", "data"), 
-    [Input("data-load", "n_clicks")],
+    [Input("data-processor", "n_clicks")],
     [State('table-container', 'data'),
     State('table-container', 'columns')],
     [State('input-temp', "value")],
@@ -151,10 +148,14 @@ app.layout = html.Div([
     [State("input-sens-5", "value")],
     )
 def add_row(n_clicks, rows, columns, temp, rel_hum,abs_hum, sens1, sens2, sens3, sens4, sens5):
+    X = [temp, rel_hum,abs_hum, sens1, sens2, sens3, sens4, sens5]
+    data = []
     if n_clicks is None:
         raise PreventUpdate
-    else:
-        rows.append({c['id']: r for c,r in zip(columns, [temp, rel_hum,abs_hum, sens1, sens2, sens3, sens4, sens5])})
+    y = model.predict(data)
+    y = y.reshape(-1, 1)
+    data.extend(iter(y))
+    rows.append({c['id']: r for c,r in zip(columns, data)})
     return rows
 
 
@@ -174,5 +175,5 @@ def model():
 
 
 if __name__ == '__main__':
-    # model = joblib.load("predModel.sav")
+    model = joblib.load("predModel.pkl")
     app.run_server(debug=True)
